@@ -1,0 +1,32 @@
+{
+	"name": "devproxy",
+	"preferGlobal": "true",
+	"bin": {
+		"devproxy" : "app.js"
+	}
+	"description": "An HTTP proxy which could replace http requests with local files by rules",
+	"tags": [
+		"util",
+		"dev",
+		"proxy"
+	],
+	"version": "0.0.1",
+	"author": "Chunlong Liu <longbill.cn@gmail.com>",
+	"engines": [
+		"node >= 0.3.6"
+	],
+	"main": "app.js",
+	"dependencies": {},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/longbill/node-devproxy.git"
+	},
+	"keywords": [
+		"proxy",
+		"dev"
+	],
+	"license": "BSD"
+}
