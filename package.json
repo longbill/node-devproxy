@@ -3,7 +3,7 @@
 	"preferGlobal": "true",
 	"bin": {
 		"devproxy" : "app.js"
-	}
+	},
 	"description": "An HTTP proxy which could replace http requests with local files by rules",
 	"tags": [
 		"util",
@@ -22,7 +22,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git://github.com/longbill/node-devproxy.git"
+		"url": "git+https://github.com/longbill/node-devproxy.git"
 	},
 	"keywords": [
 		"proxy",
