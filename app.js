@@ -45,6 +45,7 @@ Have fun!\n\
 
 var RULES = [];
 var SETTINGS = {};
+var CAPTURES = [];
 
 
 proxy.filter = function(req,res,next)
@@ -145,6 +146,7 @@ function syncRules(cb)
         {
         	RULES = [];
         	SETTINGS = {};
+        	CAPTURES = [];
 			var s = data.toString();
 			var lines = s.split("\n");
 			for(var i=0;i<lines.length;i++)
@@ -159,6 +161,12 @@ function syncRules(cb)
 				if (p[0] == 'SET')
 				{
 					SETTINGS[p[1]] = p[2];
+					continue;
+				}
+
+				if (p[0] == 'CAPTURE')
+				{
+					CAPTURES.push({ reg: createURLReg(p[1]), file: getRelativePath(p[2])});
 					continue;
 				}
 
@@ -213,13 +221,36 @@ function syncSetting()
 		proxy.cacheFileTypes = {};
 		proxy.clearCache();
 	}
+
+	proxy.setCapture(CAPTURES);
+
+	if (SETTINGS['CAPTURE_IGNORE'])
+	{
+		var arr = SETTINGS['CAPTURE_IGNORE'].split(',');
+		var ftypes = {};
+		for(var i=0,ftype; ftype=arr[i]; i++)
+		{
+			ftype = ftype.toLowerCase().replace(/^[\s\t]+|[\s\t]+$/g,'');
+			if (ftype) ftypes[ftype] = true;
+		}
+		proxy.setCaptureIgnore(ftypes);
+		console.log('SET CAPTURE_IGNORE to '+SETTINGS['CAPTURE_IGNORE']);
+	}
+	else
+	{
+		proxy.setCaptureIgnore({});
+	}
+	
+	console.log(CAPTURES.length +' CAPTURE RULES');
+	
 }
 
 function createURLReg(line)
 {
 	line = line.replace(/([\.\/\:\-\?\&\[\]\(\)\,\=\%])/g,"\\$1");
-	line = line.replace(/\*{3}/g,'.*');
+	line = line.replace(/\*{3}/g,'{+}{+}{+}');
 	line = line.replace(/\*/g,'[^\\/\\s\\r\\n]*');
+	line = line.replace(/\{\+\}\{\+\}\{\+\}/g,'.*');
 	return new RegExp('^'+line+'$');
 }
 
@@ -230,7 +261,13 @@ function basename(url)
 	return l.split('?').shift();
 }
 
-
+function getRelativePath(f)
+{
+	var arr = defaultRuleFile.split('/');
+	arr.pop();
+	arr.push(f);
+	return arr.join('/');
+}
 
 function getContentType(url)
 {

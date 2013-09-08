@@ -3,9 +3,19 @@ var fs = require('fs');
 var local_port = 2000;
 
 
+
+var CAPTURES = [],CAPTURE_IGNORE = {};
 exports.HTTPProxy = null;  // { host: "localhost", port:8000 }
 exports.cacheFileTypes = {};
 exports.clearCache = function() {};
+exports.setCapture = function(captures)
+{
+    CAPTURES = captures;
+};
+exports.setCaptureIgnore = function(s)
+{
+    CAPTURE_IGNORE = s;
+};
 
 exports.filter = function(req,res,next)
 {
@@ -54,7 +64,6 @@ exports.listen = function(port)
 					relay_connection(req);
 				}
             });
-
         });
 
         //从http请求头部取得请求信息后，继续监听浏览器发送数据，同时连接目标服务器，并把目标服务器的数据传给浏览器
@@ -69,6 +78,12 @@ exports.listen = function(port)
                 var _body_pos = buffer_find_body(buffer);
                 if (_body_pos < 0) _body_pos = buffer.length;
                 var header = buffer.slice(0,_body_pos).toString('utf8');
+
+                if (checkCapture(req))
+                {
+                    header = header.replace(/Accept\-Encoding\:.+\r\n/i,'');
+                }
+
                 //替换connection头
                 header = header.replace(/(proxy\-)?connection\:.+\r\n/ig,'')
                         .replace(/Keep\-Alive\:.+\r\n/i,'')
@@ -92,7 +107,11 @@ exports.listen = function(port)
                 return;
             }
             //交换服务器与浏览器的数据
-            client.on("data", function(data){ server.write(data); });
+            client.on("data", function(data)
+            {
+                buffer = buffer_add(buffer,data);
+                server.write(data);
+            });
 
             var server_response_buffer = new Buffer(0);
             server.on("data", function(data)
@@ -119,6 +138,15 @@ exports.listen = function(port)
                         console.log('PROXY cached: '+req.path);
                     }
                 }
+                if (req.method != 'CONNECT')
+                {
+                    logHTTP(req,"REQUEST",buffer);
+                    logHTTP(req,"RESPONSE",server_response_buffer);
+                }
+                else
+                {
+                    logHTTP(req,"CONNECT","CONNECT to "+req.host+':'+req.port);
+                }
             });
 
             server.on('error',function()
@@ -128,7 +156,16 @@ exports.listen = function(port)
             });
 
             if (req.method == 'CONNECT')
-                client.write(new Buffer("HTTP/1.1 200 Connection established\r\nConnection: close\r\n\r\n"));
+            {
+                if (exports.HTTPProxy)
+                {
+                    server.write(buffer);
+                }
+                else
+                {
+                    client.write(new Buffer("HTTP/1.1 200 Connection established\r\nConnection: close\r\n\r\n"));
+                }
+            }
             else
                 server.write(buffer);
         }
@@ -139,7 +176,34 @@ exports.listen = function(port)
 };
 
 
+function checkCapture(req)
+{
+    for(var i=0,c; c=CAPTURES[i];i++)
+    {
+        if (req.url.match(c.reg))
+        {
+            var ftype = req.url.split('?').shift().split('.').pop().toLowerCase();
+            if (CAPTURE_IGNORE[ftype]) continue;
+            return true;
+        }
+    }
+    return false;
+}
 
+function logHTTP(req,type,buffer)
+{
+    if (!checkCapture(req)) return;
+    for(var i=0,c; c=CAPTURES[i];i++)
+    {
+        if (req.url.match(c.reg))
+        {
+            fs.appendFile(c.file,type+' '+req.url+"\n<"+type+">\n\t");
+            fs.appendFile(c.file,buffer.toString('utf-8').replace(/\n/g,"\n\t"));
+            fs.appendFile(c.file,"\n</"+type+">\n\n\n");
+            console.log('CAPTURED '+req.url+' into '+c.file );
+        }
+    }
+}
 
 
 //处理各种错误
@@ -164,7 +228,7 @@ function parse_request(buffer)
     {
         var arr = s.match(/^([A-Z]+)\s([^\:\s]+)\:(\d+)\sHTTP\/(\d\.\d)/);
         if (arr && arr[1] && arr[2] && arr[3] && arr[4])
-            return { method: arr[1], host:arr[2], port:arr[3],httpVersion:arr[4] };
+            return { method: arr[1], host:arr[2], port:arr[3],httpVersion:arr[4], path:'https://'+arr[2], url:'https://'+arr[2] };
     }
     else
     {
