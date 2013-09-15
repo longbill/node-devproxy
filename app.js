@@ -81,6 +81,8 @@ proxy.filter = function(req,res,next)
 	}
 
 
+
+
 	if (filePath)
 	{
 		fs.exists(filePath,function(exists)
