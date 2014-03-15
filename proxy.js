@@ -155,6 +155,12 @@ exports.listen = function(port)
                 client.end();
             });
 
+            client.on('error',function()
+            {
+                try{ server.destroy(); } catch(e){ }
+                try{ server.end(); } catch(e){ }
+            });
+
             if (req.method == 'CONNECT')
             {
                 if (exports.HTTPProxy)

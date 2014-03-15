@@ -289,3 +289,12 @@ function getContentType(url)
 
 
 
+process.on('uncaughtException', function(err)
+{
+	console.log("\nError!!!!");
+	//console.log(err);
+});
+
+
+
+
