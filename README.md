@@ -1,6 +1,12 @@
 ### An HTTP proxy which could replace http requests with local files by rules
 
+## Sponsors
 
+This project is kindly supported by:
+
+- [Maplogs](https://maplogs.com) — Maplogs
+- [Dict.cat](https://dict.cat) — Dict.cat
+- [SeekMap](https://seekmap.ai) — SeekMap
 
 ## INSTALLATION
 
